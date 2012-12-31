@@ -1,0 +1,72 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+
+  "Description" : "Create an EC2 instance running the RedHat Linux. The AMI is chosen based on the region in which the stack is run. This template creates an EC2 security group for the instance to give you SSH access.",
+
+  "Parameters" : {
+    "KeyName" : {
+  	  "Description" : "Name of an existing EC2 KeyPair to enable SSH access to the instances",
+		  "Type" : "String",
+		  "MinLength": "1",
+		  "MaxLength": "64",
+		  "AllowedPattern" : "[-_ a-zA-Z0-9]*",
+		  "ConstraintDescription" : "can contain only alphanumeric characters, spaces, dashes and underscores."
+		},
+		"InstanceType" : {
+		  "Description" : "EC2 instance type",
+		  "Type" : "String",
+		  "Default" : "t1.micro",
+		  "AllowedValues" : [ "t1.micro","m1.small","m1.medium","m1.large","m1.xlarge","m2.xlarge","m2.2xlarge","m2.4xlarge","c1.medium","c1.xlarge","cc1.4xlarge","cc2.8xlarge","cg1.4xlarge"],
+		  "ConstraintDescription" : "must be a valid EC2 instance type."
+		}
+  },
+
+	"Resources" : {
+	"Ec2Instance" : {
+	  "Type" : "AWS::EC2::Instance",
+	  "Metadata" : {
+        "AWS::CloudFormation::Init" : {
+		   "config" : {
+				"services" : {
+				  "sysvinit" : {
+					"tomcat6"    : { "enabled" : "true", "ensureRunning" : "true" }
+				  }
+				}
+		   }
+		}
+	  },	
+	  "Properties" : {
+		"SecurityGroups" : [ { "Ref" : "InstanceSecurityGroup" } ],
+		"KeyName" : { "Ref" : "KeyName" },
+		"ImageId" : "ami-0b0fc662",
+		"InstanceType"   : { "Ref" : "InstanceType" }
+	  }
+	},
+
+    "InstanceSecurityGroup" : {
+      "Type" : "AWS::EC2::SecurityGroup",
+      "Properties" : {
+        "GroupDescription" : "Enable SSH access via port 22",
+        "SecurityGroupIngress" : [ 
+		{"IpProtocol" : "tcp","FromPort" : "22","ToPort" : "22","CidrIp" : "0.0.0.0/0"},
+		{"IpProtocol" : "tcp", "FromPort" : "8080", "ToPort" : "8080", "CidrIp" : "0.0.0.0/0"}
+		]
+      }
+    }
+  },
+
+  "Outputs" : {
+    "InstanceId" : {
+      "Description" : "InstanceId of the newly created EC2 instance",
+      "Value" : { "Ref" : "Ec2Instance" }
+    },
+    "AZ" : {
+      "Description" : "Availability Zone of the newly created EC2 instance",
+      "Value" : { "Fn::GetAtt" : [ "Ec2Instance", "AvailabilityZone" ] }
+    },
+    "PublicIP" : {
+      "Description" : "Public IP address of the newly created EC2 instance",
+      "Value" : { "Fn::GetAtt" : [ "Ec2Instance", "PublicIp" ] }
+    }
+  }
+}
